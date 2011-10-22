@@ -27,7 +27,7 @@ import net.jxta.endpoint.Message.ElementIterator;
 import net.jxta.endpoint.MessageElement;
 import net.jxta.endpoint.StringMessageElement;
 import org.bouncycastle.jce.exception.ExtIOException;
-import org.json.JSONObject;
+import utils.JSONObject;
 import protoLowareInterfaceDevice.LIDRequestHandler;
 import protoStandardAbstractData.LOP2PMetadata;
 import protoTranslatorDevice.*;
