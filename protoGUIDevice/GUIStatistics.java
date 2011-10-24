@@ -91,8 +91,8 @@ public class GUIStatistics extends javax.swing.JFrame {
 
         jLabel1.setText("jLabel1");
 
-        jLabel2.setFont(new java.awt.Font("Tahoma", 1, 36));
-        jLabel2.setText("LOP2P: Mediation Layer");
+        jLabel2.setFont(new java.awt.Font("Tahoma", 1, 36)); // NOI18N
+        jLabel2.setText("LOP2Pb: Mediation Layer");
         jLabel2.setAutoscrolls(true);
 
         jButton1.setText("Refresh");
@@ -112,7 +112,7 @@ public class GUIStatistics extends javax.swing.JFrame {
 
             },
             new String [] {
-                "File", "PeerID", "MsgID", "Percentual", "Downloaded", "Rate", "Time Elapsed"
+                "Block", "PeerID", "MsgID", "Percentual", "Downloaded", "Rate", "Time Elapsed"
             }
         ) {
             boolean[] canEdit = new boolean [] {
