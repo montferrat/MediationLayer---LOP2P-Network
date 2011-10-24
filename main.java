@@ -1,8 +1,11 @@
-
 import java.io.IOException;
 import protoGUIDevice.GUIStatistics;
 import protoLowareInterfaceDevice.LIDConfiguration;
 import protoLowareInterfaceDevice.LIDReceiveConnection;
+import net.jxta.peergroup.PeerGroup;
+import net.jxta.peergroup.PeerGroupFactory;
+import net.jxta.exception.PeerGroupException;
+
 
 /*
  * To change this template, choose Tools | Templates
@@ -15,15 +18,16 @@ import protonetcommunicationdevice.NCDevice;
  *
  * @author Rafael de Santiago
  */
+
 public class main {
   public static void main(String[] args) throws IOException, ClassNotFoundException {
         
          NCDevice myNCD = new NCDevice();
-         
+
          LIDConfiguration nicfg = new LIDConfiguration(myNCD.getNCDCfg());
          myNCD.setLIDCfg(nicfg);
          LIDReceiveConnection lirc = new LIDReceiveConnection(nicfg);
-         
+
          myNCD.start();
          lirc.start();
          

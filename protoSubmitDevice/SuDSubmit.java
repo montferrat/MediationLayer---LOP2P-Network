@@ -19,10 +19,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import net.jxta.endpoint.Message.ElementIterator;
 import net.jxta.endpoint.MessageElement;
 import net.jxta.endpoint.StringMessageElement;
 import protoLowareInterfaceDevice.LIDRequestHandler;
+import protoSearchDevice.SDConfiguration;
 import protoStandardAbstractData.LOP2PMetadata;
 import protoStatisticsDevice.StDData;
 import protoTranslatorDevice.*;
@@ -43,6 +45,7 @@ public class SuDSubmit {
     
     private LIDRequestHandler clientSocket;
     private StDData statisticData;
+    private SDConfiguration searchCfg;
     
     /**
      * Constructor of the class SuDSubmit. This class have the purpose of
@@ -52,10 +55,11 @@ public class SuDSubmit {
      * @param sdcfg configuration object of the Search Device
      * @param trdcfg configuration object of the Translator Device
      */                  
-    public SuDSubmit (LIDRequestHandler clientSocket, SuDConfiguration sdcfg, TrDConfiguration trdcfg){
+    public SuDSubmit (LIDRequestHandler clientSocket, SuDConfiguration sdcfg, TrDConfiguration trdcfg, SDConfiguration sdcong){
         this.sdcfg = sdcfg;    
         this.translator = new TrDTranslator(trdcfg);
         this.clientSocket = clientSocket;
+        this.searchCfg = sdcong;
     }
 
     
@@ -84,7 +88,7 @@ public class SuDSubmit {
             synchronized(toCliente){
                 toCliente.write(error.getBytes());                     
             }
-            String bye = "GOODBYE";
+            String bye = "O Download dos blocos foi iniciado, verifique a GUI para status";
             synchronized(toCliente){
                 toCliente.write(bye.getBytes());         
                 toCliente.close();
@@ -92,34 +96,20 @@ public class SuDSubmit {
             //clientSocket.close();
            throw new Exception(error);
         }
-        
-        String translatedMessage = "";
-        //if the peer is that, send the object, if not, search!
-        if (peerid.equals(this.sdcfg.getNCDCfg().getNetworkManager().getPeerID().toURI().toString())){
-            //send OA
-            LOP2PMetadata mtdt = this.sdcfg.getGDData().getMyMetadataByID(loid);
-            if (mtdt != null){
-                //success... 
-                
-                //copy object to repository peer                
-                File loFile = new File(mtdt.getLocation());
-                Date now = new Date();    
-                String newName = "LOP2P" + now.getTime()+loFile.getName();
-                String newPath = this.getSuDCfg().getLearningObjectsDirectory()+"/"+newName;
-                File newLO = new File (newPath);
-                copyFile(loFile, newLO);
-                
-                //return the location in this computer
-                translatedMessage = /*(String) translator.translateBackStore(*/newLO.getAbsolutePath()/*)*/;
-                
-            }else{
-                //failure to return object... advert the loware
-                translatedMessage = (String) translator.translateBackStore("");
-            }
-        }else{
-            //locate OA
-             
-            
+
+        //ending message for requester (LOWare)
+        String bye = "O Download dos blocos foi iniciado, verifique a GUI para status";
+        synchronized(toCliente){
+            toCliente.write(bye.getBytes());
+            toCliente.close();
+        }
+
+        //it runs the download thread
+        SuDDownloadHandler sdh = new SuDDownloadHandler(loid, this.sdcfg, this.statisticData, this.translator, this.searchCfg);
+        sdh.start();
+/*
+            String translatedMessage = "";
+            //if the peer is that, send the object, if not, search!
             //send message
             ArrayList msgPool = this.sdcfg.getNCDCfg().getNCDData().getMessageBufferList();
             Date date = new Date();
@@ -130,8 +120,10 @@ public class SuDSubmit {
             thisPeer = thisPeer.substring(thisPeer.indexOf("uuid"));
             LOP2PMessage msgToSend = new LOP2PMessage(thisPeer, peerTarget, this.sdcfg.getNCDCfg().getMessageNamespace());
             msgToSend.addItem("IDMSG", msgID);
-            msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.STORE.toString());
+            msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.TORRENT_DOWNLOAD.toString());
             msgToSend.addItem("LOID", loid);
+
+
             msgPool.add(msgToSend);
             
             //insert new mapping for download
@@ -188,19 +180,10 @@ public class SuDSubmit {
             }  
             //erase statistic
             this.statisticData.finishDownload(msgID, peerTarget);  
-        }
 
+*/
         
-        //send response and close connection
-        synchronized(toCliente){
-            toCliente.write(translatedMessage.getBytes());
-        }
-        //ending message for requester
-        String bye = "GOODBYE";
-        synchronized(toCliente){
-            toCliente.write(bye.getBytes());         
-            toCliente.close();
-        }
+
         //clientSocket.close();
     }
 
@@ -226,6 +209,7 @@ public class SuDSubmit {
 
             String msgid = msg.getItem("IDMSG");
 
+            String block = msg.getItem("BLOCK");
             //verifies if this message was received another day
             if (this.sdcfg.getNCDCfg().getNCDData().addIfIsNewMessage(msgid) == false){
                 //preempt the proccess
@@ -235,7 +219,7 @@ public class SuDSubmit {
 
             //retrieving metadata from object
             LOP2PMetadata mtdt = this.sdcfg.getGDData().getMyMetadataByID(loid);
-            String location = mtdt.getLocation();
+            String location = this.sdcfg.getGDData().getBlocksLOs()+mtdt.getIdentifier()+"/quadro."+block;
 
 
             ArrayList msgPool = this.sdcfg.getNCDCfg().getNCDData().getMessageBufferList();
@@ -243,19 +227,20 @@ public class SuDSubmit {
             //create message
             LOP2PMessage msgToSend = new LOP2PMessage(msg.getItem("peerDestination"), msg.getItem("peerFrom"), this.sdcfg.getNCDCfg().getMessageNamespace());
             msgToSend.addItem("IDMSG", msgid);
-            msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.STORE_SUBMIT.toString());
-
-            File learningObject = new File(location);
-            msgToSend.addAttachment(learningObject);
+            msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.TORRENT_UPLOAD.toString());
+            //pegar bloco
+            File Block = new File(location);
+            msgToSend.addAttachment(Block);
 
             //send message to search requester
             msgPool.add(msgToSend);
-            System.err.println("Sending Learning Object!");
+            System.err.println("Sending Block "+block+"!");
         }catch(Exception ex){
             System.out.println("SubmitiStore: "+ex.toString());
         }            
 
     }
+
 
     void copyFile(File src, File dst) throws IOException {
         InputStream in = new FileInputStream(src);

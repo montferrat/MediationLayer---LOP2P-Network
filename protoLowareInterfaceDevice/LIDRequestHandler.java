@@ -16,6 +16,7 @@ import protoGatherDevice.*;
 
 import protoSearchDevice.SDConfiguration;
 import protoSearchDevice.SDSearch;
+import protoSearchDevice.SDTorrentRequest;
 import protoStatisticsDevice.StDStatistics;
 import protoSubmitDevice.SuDConfiguration;
 import protoSubmitDevice.SuDSubmit;
@@ -76,7 +77,7 @@ public class LIDRequestHandler extends Thread{
                     doCliente = handler.getIn();//new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
                     String bruteMessage = "";
                     char tmp = ' ' ;
-                    sleep(15000L);
+                    sleep(1000L);
                     while (doCliente.ready()) {
                         synchronized(doCliente){
                             tmp = (char) doCliente.read();
@@ -105,15 +106,45 @@ public class LIDRequestHandler extends Thread{
 
                         case SEARCH:
                             //calls handler for that function
+                            //System.out.println (message);
                             SDSearch search = new SDSearch(this, new SDConfiguration(this.lidcfg.getGdCfg(), lidcfg.getNCDCfg()), this.lidcfg.getTrdCfg());
                             search.search(message);
                             break;
 
                         case STORE:
+                            
                             //calls handler for that function
-                            SuDSubmit submit = new SuDSubmit(this, new SuDConfiguration(this.lidcfg.getGdCfg(), lidcfg.getNCDCfg()), this.lidcfg.getTrdCfg());
+                            //(LIDRequestHandler clientSocket, SuDConfiguration sdcfg, TrDConfiguration trdcfg, SDConfiguration sdcong)
+                            SuDSubmit submit = new SuDSubmit(this, new SuDConfiguration(this.lidcfg.getGdCfg(), lidcfg.getNCDCfg()), this.lidcfg.getTrdCfg(), new SDConfiguration(this.lidcfg.getGdCfg(), this.lidcfg.getNCDCfg()));
                             submit.store(message);
-                            break;  
+
+                            break;
+
+
+//                        case TORRENT_REQUEST:
+//                             //calls handler for that function
+//                            SDTorrentRequest searchTorrentRequest = new SDTorrentRequest(this, new SDConfiguration(this.lidcfg.getGdCfg(), lidcfg.getNCDCfg()), this.lidcfg.getTrdCfg());
+//                            searchTorrentRequest.search(message);
+//                            break;
+
+                        case TORRENT_SUBMIT:
+
+                            //Adicionar
+
+                            break;
+
+                        case TORRENT_DOWNLOAD:
+
+                            //Adicionar
+
+                            break;
+
+                        case TORRENT_UPLOAD:
+
+                            //Adicionar
+
+                            break;
+
 
                         case STATISTICS_EXPOSE:
                             //calls handler to expose all downloads of mediation layer

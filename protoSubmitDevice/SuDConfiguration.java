@@ -28,7 +28,10 @@ public class SuDConfiguration {
     
     //max time
     private Integer expirationTime = 60;//one minutes
-    
+
+    //max time for Torrent Download and Upload
+    private Integer expirationTimeTorrent = 20;//20 seconds
+
     //directory to store the Learning Objects retrieved
     private String learningObjectsDirectory = "./retrievedLOs";
     
@@ -147,6 +150,24 @@ public class SuDConfiguration {
      */       
     public void setExpirationTime(Integer expirationTime) {
         this.expirationTime = expirationTime;
+    }
+
+    /**
+     * Return the standard expiration time of the Submit/Store.
+     *
+     * @return standard expiration time of the Submit/Store TORRENT
+     */
+    public Integer getExpirationTimeTorrent() {
+        return expirationTimeTorrent;
+    }
+
+    /**
+     * Set the standard expiration time of the Submit/Store.
+     *
+     * @param expirationTimeTorrent expiration time of the Submit/Store
+     */
+    public void setExpirationTimeTorrent(Integer expirationTimeTorrent) {
+        this.expirationTimeTorrent = expirationTimeTorrent;
     }
 
     /**

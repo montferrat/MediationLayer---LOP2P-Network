@@ -31,6 +31,7 @@ public class GDData {
     private ArrayList othersMetadatas;
     private String myMetadataPath;
     private String othersMetadatasPath;
+    private String blocksLOs = "./blocks/";
     
     /**
      * Constructor of the class GDData. This class have the purpose to store 
@@ -43,9 +44,10 @@ public class GDData {
         //if not exists, create directories
         this.createDiretory(myMetadataPath);
         this.createDiretory(othersMetadatasPath);
+        this.createDiretory("./blocks");
         
-        this.myMetadataPath = myMetadataPath+"\\MyMetadatas.ser";
-        this.othersMetadatasPath = othersMetadatasPath+"\\OthersMetadatas.ser";
+        this.myMetadataPath = myMetadataPath+"/MyMetadatas.ser";
+        this.othersMetadatasPath = othersMetadatasPath+"/OthersMetadatas.ser";
         
         //try to load the data,
         // if not exists create a new data
@@ -215,7 +217,7 @@ public class GDData {
      * @return              list of metadatas compatible with the parameter mtdt
      */             
     public ArrayList searchInMyMetadatas(LOP2PMetadata mtdt, Double simForRecover){
-        ArrayList results = new  ArrayList();
+        ArrayList results = new ArrayList();
         for(int i=0; i<this.myMetadatas.size(); i++){
             LOP2PMetadata myMtdt = (LOP2PMetadata) this.myMetadatas.get(i);
             Double similarity = myMtdt.compare(mtdt);
@@ -223,6 +225,8 @@ public class GDData {
                 results.add(myMtdt);
             }
         }
+       // results = this.myMetadatas;
+       // System.out.println(results);
         return results;
     }
     
@@ -244,5 +248,19 @@ public class GDData {
             }
         }
         return results;
-    }    
+    }
+
+    /**
+     * @return the blocksLOs
+     */
+    public String getBlocksLOs() {
+        return blocksLOs;
+    }
+
+    /**
+     * @param blocksLOs the blocksLOs to set
+     */
+    public void setBlocksLOs(String blocksLOs) {
+        this.blocksLOs = blocksLOs;
+    }
 }

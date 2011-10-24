@@ -39,7 +39,7 @@ public class TrDTranslator {
      * @param source message that will be translated
      */             
     public ArrayList translateStoreRequest (String source){
-        if (this.trdcfg.getLorMessagesType().equals("JSON")){
+        if (this.getTrdcfg().getLorMessagesType().equals("JSON")){
             try {
                 JSONObject msg = new JSONObject(source);
                 JSONArray ja = msg.optJSONArray("message");
@@ -73,7 +73,7 @@ public class TrDTranslator {
      * @param source message that will be translated
      */                
     public ArrayList translate (String source){
-        if (this.trdcfg.getLorMessagesType().equals("JSON")){
+        if (this.getTrdcfg().getLorMessagesType().equals("JSON")){
             try {
                 JSONObject msg = new JSONObject(source);
                 JSONArray ja = msg.optJSONArray("message");
@@ -108,7 +108,7 @@ public class TrDTranslator {
      * @param path path of the Learning Object
      */       
     public Object translateBackStore(String path){
-        if (this.trdcfg.getLorMessagesType().equals("JSON")){
+        if (this.getTrdcfg().getLorMessagesType().equals("JSON")){
             try {
                 JSONObject obj = new JSONObject();
                 obj.append("lopath", path);
@@ -127,7 +127,7 @@ public class TrDTranslator {
      * @param peersource peerid of the peer source
      */
     public Object translateBack(LOP2PMetadata mtdt, String peersource){
-        if (this.trdcfg.getLorMessagesType().equals("JSON")){
+        if (this.getTrdcfg().getLorMessagesType().equals("JSON")){
             try {
                 JSONObject obj = new JSONObject();
                 obj.append("metadata", mtdt.getXMLString());
@@ -192,6 +192,13 @@ public class TrDTranslator {
         }
         return null;
         
+    }
+
+    /**
+     * @return the trdcfg
+     */
+    public TrDConfiguration getTrdcfg() {
+        return trdcfg;
     }
     
 }

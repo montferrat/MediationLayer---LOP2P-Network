@@ -5,6 +5,10 @@
 
 package protoLowareInterfaceDevice;
 
+
+
+
+
 import protoGatherDevice.GDConfiguration;
 import protoTranslatorDevice.TrDConfiguration;
 import protonetcommunicationdevice.*;

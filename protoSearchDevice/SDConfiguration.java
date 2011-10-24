@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package protoSearchDevice;
+package  protoSearchDevice;
 
 import protoGatherDevice.*;
 import protonetcommunicationdevice.NCDConfiguration;
@@ -28,7 +28,9 @@ public class SDConfiguration {
     //max time
     private Integer expirationTime = 30;//240; //four minutes
     
-    private Integer expirationTime2 = 120;//240; //four minutes
+    private Integer expirationTime2 = 120;//120; //two minutes
+
+    private Integer expirationTimeTorrent = 60;//60; //sixty seconds
     
     /**
      * Constructor of the class SDConfiguration. This class have the purpose of
@@ -143,4 +145,13 @@ public class SDConfiguration {
     public void setExpirationTime2(Integer expirationTime2) {
         this.expirationTime2 = expirationTime2;
     }
+
+    public Integer getExpirationTimeTorrent() {
+        return expirationTimeTorrent;
+    }
+
+    public void setExpirationTimeTorrent(Integer expirationTimeTorrent) {
+        this.expirationTimeTorrent = expirationTimeTorrent;
+    }
+
 }

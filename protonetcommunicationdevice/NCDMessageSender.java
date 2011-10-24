@@ -22,7 +22,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.print.attribute.standard.DateTimeAtCompleted;
 import net.jxta.endpoint.*;
+import protoLowareInterfaceDevice.LIDRequestHandler;
 import protoStatisticsDevice.StDData;
+import utils.JxtaCast;
+import utils.JxtaCastEvent;
+import utils.JxtaCastEventListener;
 
 /**
  *
@@ -65,8 +69,6 @@ public final class NCDMessageSender /*extends Thread*/ {
     private PipeAdvertisement m_pipeAdv;
     private InputStream m_inputStream;
     
-    
-    
     PropertyChangeSupport m_changeSupport = new PropertyChangeSupport(this);
 
     
@@ -79,6 +81,7 @@ public final class NCDMessageSender /*extends Thread*/ {
      * @param peerIdDestination ID of the desntination peer
      */    
     public NCDMessageSender(NCDConfiguration netcfg, LOP2PMessage msg, String peerIdDestination) throws FileNotFoundException {
+
         /*super("NCDMessageSender");*/
         //get the statistic storage instance
       //  this.statisticData = StDData.instanceOfStDData();
@@ -171,6 +174,8 @@ public final class NCDMessageSender /*extends Thread*/ {
      * 
      */  
     public void send() {
+
+
         try {
 
             
