@@ -23,6 +23,8 @@ import java.net.URI;
 import java.util.Date;
 import java.util.Properties;
 import net.jxta.impl.id.UUID.PeerGroupID;
+import net.jxta.impl.protocol.PeerAdv;
+import net.jxta.protocol.PeerAdvertisement;
 import protoStatisticsDevice.StDData;
 
 /**
@@ -52,7 +54,7 @@ public class NCDConfiguration {
     public final String SOCKETIDSTR = "urn:jxta:uuid-59616261646162614E5047205032503393B5C2F6CA7A41FBB0F890173088E79404";
     
     private String messageNamespace = "LOP2PMessage";
-
+    private PeerAdv myPeerAdv;          // Peer advertisement about me.
 
     
     /**
@@ -340,7 +342,9 @@ config.save();
         this.messagesSerializatedMsgPath = messagesSerializatedMsgPath;
     }
 
-
+    public PeerAdvertisement getMyPeerAdv() {
+        return myPeerAdv;
+    }
     
     
 

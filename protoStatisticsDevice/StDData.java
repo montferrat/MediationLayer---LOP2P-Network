@@ -155,7 +155,7 @@ public class StDData {
                 this.appendLogFile(this.downloadPathLOG, logData);                
                 
                 //remove
-                this.getDownloads().remove(stddt);
+                //this.getDownloads().remove(stddt);
                 break;
             }
         }
@@ -181,7 +181,7 @@ public class StDData {
         peerID = peerID.substring(peerID.indexOf("uuid"));
         for (StDDataTransmission stddt: this.getUploads()){
             if ((stddt.getMsgID().equals(msgID)) && (stddt.getPeerID().equals(peerID))){
-                this.getUploads().remove(stddt);
+                //this.getUploads().remove(stddt);
                 break;
             }
         }

@@ -6,7 +6,9 @@
 package protonetcommunicationdevice;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import net.jxta.endpoint.EndpointAddress;
+import protoStandardAbstractData.LOP2PMetadata;
 import protoStatisticsDevice.StDData;
 
 /**
@@ -25,6 +27,8 @@ public class NCDData {
     //know peerlist
     private ArrayList knownPeersList;
 
+    //files that peers have and the blocks they contain
+    private HashMap<String, ArrayList<Object> > peerTorrent;
     
     /**
      * Constructor for the NCDData. Objects from this class are 
@@ -36,6 +40,7 @@ public class NCDData {
         this.messageSenderBufferList = new ArrayList();
         this.messageReceiverBufferList = new ArrayList();
         this.messagesRead = new ArrayList();
+        this.peerTorrent = new HashMap<String, ArrayList<Object> >();
     }
 
     /**
@@ -116,7 +121,7 @@ public class NCDData {
         }
     }
     
-/**
+    /**
      * remove the peer address
      * 
      * @param peerToRemoveadress address of the peer to remove
@@ -172,5 +177,49 @@ public class NCDData {
             }
         }
         return response;
+    }
+
+     /**
+     * Set the quantity of blocks a certain Peer has of a specific file
+     *
+     * @param loid ID from the LO
+     *
+     * @param PeerID ID from the Peer that has the blocks we're storing
+     *
+     * @param blocks Blocks that the peer currently have
+     *
+     */
+    public void setPeerBlocksOfFile(String loid, String PeerID, boolean[] blocks) {
+        boolean verify = peerTorrent.containsKey(loid);
+        if (verify == true) {
+            ArrayList blocksFromPeers = (ArrayList)peerTorrent.get(loid);
+            if (blocksFromPeers.contains(PeerID)) {
+                blocksFromPeers.remove(blocksFromPeers.indexOf(PeerID) + 1);
+                blocksFromPeers.add(blocksFromPeers.indexOf(PeerID) + 1, blocks);
+            } else {
+                blocksFromPeers.add(PeerID);
+                blocksFromPeers.add(blocks);
+            }
+            peerTorrent.remove(loid);
+            peerTorrent.put(loid, blocksFromPeers);
+
+        } else {
+            ArrayList blocksFromPeer = new ArrayList();
+            blocksFromPeer.add(PeerID);
+            blocksFromPeer.add(blocks);
+            peerTorrent.put(loid, blocksFromPeer);
+        }
+
+    }
+
+     /**
+     * Get the quantity of blocks a certain Peer has of a specific file
+     *
+     * @param loid ID from the LO
+     *
+     */
+    public ArrayList getPeerBlocksOfFile(String loid) {
+        ArrayList blocksPeerHave = (ArrayList)peerTorrent.get(loid);
+        return blocksPeerHave;
     }
 }

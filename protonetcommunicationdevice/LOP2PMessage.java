@@ -19,6 +19,7 @@ import net.jxta.endpoint.*;
  */
 public class LOP2PMessage extends Message{
     static private final long serialVersionUID = 42L;
+    private MESSAGE_TYPE tipoMsg;
 
     /**
      * Return the namespace of the message.
@@ -44,6 +45,8 @@ public class LOP2PMessage extends Message{
         GATHER, GATHER_EXPOSE, 
         SEARCH, SEARCH_EXPOSE,
         STORE, STORE_SUBMIT,
+        TORRENT_DOWNLOAD, TORRENT_UPLOAD,
+        TORRENT_REQUEST, TORRENT_SUBMIT,
         REQUEST, REQUEST_SUBMIT,
         ALERT, ALERT_EXPOSE,
         STATISTICS_EXPOSE
@@ -74,6 +77,8 @@ public class LOP2PMessage extends Message{
          // adding destination of the message
         StringMessageElement smeDest = new StringMessageElement("peerDestination", peerDestination, null);
         this.addMessageElement(this.getNamespace(), smeDest);
+
+        //store the type of the message
         
     }
     
@@ -218,7 +223,10 @@ public class LOP2PMessage extends Message{
         }
                     
     }
-    
+
+    public MESSAGE_TYPE getTipoMsg() {
+        return tipoMsg;
+    }
     
     
 }

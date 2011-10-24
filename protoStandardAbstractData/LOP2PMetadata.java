@@ -144,6 +144,9 @@ import org.xml.sax.InputSource;
 
 
 public class LOP2PMetadata extends Document{
+    private boolean blocks[];
+    private String fileName;
+    private long sizeOA;
     private Element lom;
     private Element general;
     private Element lifeCycle;
@@ -612,129 +615,62 @@ public class LOP2PMetadata extends Document{
     public String getLocation(){
         return this.getTechnical().getChildTextTrim("location",  this.lom.getNamespace());
     }
-   /*
+
+    /**
+     * @return the blocks
+     */
+    public boolean[] getBlocks() {
+        return blocks;
+    }
+
+    /**
+     * @param blocks the blocks to set
+     */
+    public void setBlocks(boolean[] blocks) {
+        this.blocks = blocks;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public long getSizeOA() {
+        return sizeOA;
+    }
+
+    public void setSizeOA(long sizeOA) {
+        this.sizeOA = sizeOA;
+    }
+
+    public void setIdentifier(String loid) {
+
+        Element ge = this.general;
+        if (ge == null){
+            this.general = new Element("general", this.lom.getNamespace());
+            
+        }
+
+
+        Element elID = this.getGeneral().getChild("identifier");
+        if (elID != null){
+            this.getTechnical().removeChild("identifier");
+        }
+        elID = new Element("identifier");
+
+
+        Element catalog = new Element("catalog");
+        catalog.setText("LOP2PID");
+        Element entry = new Element("entry");
+        entry.setText(loid);
+
+        elID.addContent(catalog);
+        elID.addContent(entry);
+
+        this.getGeneral().addContent(elID);
+    }
    
-    public static void main(String[] args) throws IOException {
-        
-        String xml = "<?xml version=\"1.0\"?>"
-        +"<lom"
-        +"  xmlns=\"http://www.imsglobal.org/xsd/imsmd_rootv1p2p1\""
-        +"  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
-        +"  xsi:schemaLocation=\"http://www.imsglobal.org/xsd/imsmd_rootv1p2p1 imsmd_rootv1p2p1.xsd\">"
-        +"  <general>"
-        +"    <title>"
-        +"      <langstring>Cruzadas</langstring>"
-        +"    </title>"
-        +"    <catalogentry>"
-        +"      <catalog>eXe Authored Course ID</catalog>"
-        +"      <entry>"
-        +"        <langstring>OAI-01</langstring>"
-        +"      </entry>"
-        +"    </catalogentry>"
-        +"    <language>pt</language>"
-        +"    <description>"
-        +"      <langstring>Descrição breve sobre as cruzadas</langstring>"
-        +"    </description>"
-        +"    <aggregationlevel>"
-        +"      <vocabulary>"
-        +"        <source>"
-        +"          <langstring xml:lang=\"x-none\">LOMv1.0</langstring>"
-        +"        </source>"
-        +"        <value>"
-        +"          <langstring xml:lang=\"x-none\">3</langstring>"
-        +"        </value>"
-        +"      </vocabulary>"
-        +"    </aggregationlevel>"
-        +"  </general>"
-        +"  <lifecycle>"
-        +"    <contribute>"
-        +"      <role>"
-        +"        <source>"
-        +"	  <langstring xml:lang=\"x-none\">LOMv1.0</langstring>"
-        +"	</source>"
-        +"	<value>"
-        +"	  <langstring xml:lang=\"x-none\">Author</langstring>"
-        +"	</value>"
-        +"      </role>"
-        +"      <centity>"
-        +"        <vcard>BEGIN:vCard FN:Rafael de Santiago END:vCard</vcard>"
-        +"      </centity>"
-        +"      <date>"
-        +"        <datetime>2008-08-28</datetime>"
-        +"      </date>"
-        +"    </contribute>"
-        +"    <contribute>"
-        +"      <role>"
-        +"        <source>"
-        +"	  <langstring xml:lang=\"x-none\">LOMv1.0</langstring>"
-        +"	</source>"
-        +"	<value>"
-        +"	  <langstring xml:lang=\"x-none\">Publisher</langstring>"
-        +"	</value>"
-        +"      </role>"
-        +"      <centity>"
-        +"        <vcard>BEGIN:vCard FN:Publicar END:vCard</vcard>"
-        +"      </centity>"
-        +"      <date>"
-        +"        <datetime>2008-08-28</datetime>"
-        +"      </date>"
-        +"    </contribute>"
-        +"    <contribute>"
-        +"      <role>"
-        +"        <source>"
-        +"	  <langstring xml:lang=\"x-none\">LOMv1.0</langstring>"
-        +"	</source>"
-        +"	<value>"
-        +"	  <langstring xml:lang=\"x-none\">Unknown</langstring>"
-        +"	</value>"
-        +"      </role>"
-        +"      <centity>"
-        +"        <vcard>BEGIN:vCard FN:Wikipédia END:vCard</vcard>"
-        +"      </centity>"
-        +"      <date>"
-        +"        <datetime>2008-08-28</datetime>"
-        +"      </date>"
-        +"    </contribute>"
-        +"  </lifecycle>"
-        +"  <metadata>"
-        +"    <metadatascheme>ADL SCORM 1.2</metadatascheme>"
-        +"  </metadata>"
-        +"  <technical>"
-        +"    <format></format>"
-        +"  </technical>"
-        +"  <relation>"
-        +"    <resource>"
-        +"      <description>"
-        +"        <langstring>Relação</langstring>"
-        +"      </description>"
-        +"    </resource>"
-        +"  </relation>"
-        +"  <rights>"
-        +"    <copyrightandotherrestrictions>"
-        +"      <source>"
-        +"        <langstring xml:lang=\"x-none\">LOMv1.0</langstring>"
-        +"      </source>"
-        +"      <value>"
-        +"        <langstring xml:lang=\"x-none\">no</langstring>"
-        +"      </value>"
-        +"    </copyrightandotherrestrictions>"
-        +"    <description>"
-        +"      <langstring>Copyright</langstring>"
-        +"    </description>"
-        +"  </rights>"
-        +"</lom>";
-        LOP2PMetadata doc = new LOP2PMetadata(xml);
-        System.out.println("XML 1: " + doc.getXMLString());
-
-
-        LOP2PMetadata other = new LOP2PMetadata();
-        Element e2 = new Element("keyword");
-        e2.setText("Relação");
-        Element e = new Element("general");
-        e.addContent(e2);
-        other.setGeneral(e);
-        System.out.println("XML 2: "+other.getXMLString());
-
-        System.out.println("Resultado: "+doc.compare(other));
-    }*/
 }
