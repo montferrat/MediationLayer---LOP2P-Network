@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import utils.*;
+import org.json.*;
 /**
  *
  * @author Rafael de Santiago
@@ -72,30 +72,24 @@ public class TrDTranslator {
      * 
      * @param source message that will be translated
      */                
-    public ArrayList translate (String source){
+    public ArrayList translate (JSONObject message){
         if (this.getTrdcfg().getLorMessagesType().equals("JSON")){
             try {
-                JSONObject msg = new JSONObject(source);
-                JSONArray ja = msg.optJSONArray("message");
-                if (ja == null){
-                    ja = new JSONArray();
-                    ja.put(msg.get("message"));
-                }
-
+                
+                JSONArray ja = (JSONArray)message.get("messages");
+                
                 ArrayList result = new ArrayList();
                 for (int i = 0; i < ja.length(); i++) {
-                    Object obj = ja.get(i);
-                    if (obj.getClass() == String.class){
-                        result.add(new LOP2PMetadata((String) obj));
-                    }
-                    if (obj.getClass() == JSONObject.class){
-                        result.add(this.translateJsonToLOP2PMetadata((JSONObject) obj));
-                    }
+                    JSONObject obj = (JSONObject)ja.get(i);
+                    String name = obj.getString("name");
+                    String description = obj.getString("description");
+                    result.add(new LOP2PMetadata(obj.getString("metadata"), name, description));
+                    
                 }
                 return result;
             } catch (JSONException ex) {
                 //Logger.getLogger(TrDTranslator.class.getName()).log(Level.SEVERE, null, ex);
-                System.err.println("Problems when trying to translate one metadata. Source: "+source);
+                System.err.println("Problems when trying to translate one metadata. Source: "+message.toString());
             }
         }
         return null;

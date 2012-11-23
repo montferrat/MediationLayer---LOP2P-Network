@@ -5,6 +5,7 @@
 
 package protoStandardAbstractData;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,9 @@ import javax.xml.*;
 import org.jdom.filter.ElementFilter;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.xml.sax.InputSource;
 /**
  *http://www.cafeconleche.org/books/xmljava/chapters/
@@ -143,7 +147,11 @@ import org.xml.sax.InputSource;
 
 
 
-public class LOP2PMetadata extends Document{
+public class LOP2PMetadata extends Document implements Serializable{
+    private static final long serialVersionUID = 6539369464742851465L;
+    private String name = "";
+    private String description = "";
+    
     private boolean blocks[];
     private String fileName;
     private long sizeOA;
@@ -170,6 +178,24 @@ public class LOP2PMetadata extends Document{
         this.addContent(lom);
     }
 
+    
+    
+    /**
+     * Construnctor of the class LOP2PMetadata. This class have the purpose of
+     * standard metadata object (IEEE LOM) of the Mediation Layer. With a xml
+     * string parameter, this contructor create the object, adding the name and 
+     * description of Learning Object
+     * 
+     * @param strXml xml string that will be converted in this object
+     * @param name name of the Learning Object
+     * @param description description of the Learning Object
+     */            
+    public LOP2PMetadata(String strXml, String name, String descrition) {
+        this.createFromXML(strXml);
+        this.setName(name);
+        this.setDescription(description);
+    }
+    
     /**
      * Construnctor of the class LOP2PMetadata. This class have the purpose of
      * standard metadata object (IEEE LOM) of the Mediation Layer. With a xml
@@ -177,7 +203,20 @@ public class LOP2PMetadata extends Document{
      * 
      * @param strXml xml string that will be converted in this object
      */            
-    public LOP2PMetadata(String strXml){
+    public LOP2PMetadata(String strXml) {
+        this.createFromXML(strXml);
+    }
+
+    
+    /**
+     * Private method of the class LOP2PMetadata. This class have the purpose of
+     * standard metadata object (IEEE LOM) of the Mediation Layer. With a xml
+     * string parameter, this contructor create the object
+     * 
+     * @param strXml xml string that will be converted in this object
+     */            
+    private void createFromXML(String strXml){
+            
     //    lom = new Element("lom");
     //    this.addContent(lom);
         try {
@@ -281,6 +320,7 @@ public class LOP2PMetadata extends Document{
         } catch (IOException ex) {
             Logger.getLogger(LOP2PMetadata.class.getName()).log(Level.SEVERE, null, ex);
         }
+
     }
     
     /**
@@ -478,18 +518,32 @@ public class LOP2PMetadata extends Document{
      * @param mtdtToCompare metadata that will be compared with object
      * @return similarity level of this metadata compared to mtdtToCompare
      */        
-    public Double compare(LOP2PMetadata mtdtToCompare){
+    public Double compare(JSONObject msgJSON) {
         ArrayList myList = new ArrayList();
         this.listContents(this.getLom(), myList);
+        ArrayList<String> values = new ArrayList<String>();
+        try{
+            JSONArray keys = (JSONArray)msgJSON.get("messages");
+            for(int i=0; i<keys.length(); i++){
+                JSONObject pair = keys.getJSONObject(i);
+                String value = pair.getString("value");
+                if ( this.getDescription().toUpperCase().contains(value.toUpperCase())
+                    || this.getName().toUpperCase().contains(value.toUpperCase())){
+                    return 100.0;
+                    
+                }
+                values.add(value);
+            }
+        }catch(Exception ex){
+            Logger.getLogger(LOP2PMetadata.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
-        ArrayList otherList = new ArrayList();
-        listContents(mtdtToCompare.getLom(),otherList);
         
         for (int i=0; i<myList.size();i++){
             String myItem = (String)myList.get(i);
-            for (int j=0; j<otherList.size();j++){
-                String otherItem = (String)otherList.get(j);    
-                if (myItem.endsWith(otherItem)){
+            for (int j=0; j<values.size();j++){
+                String value = values.get(j);    
+                if (myItem.toUpperCase().endsWith(value.toUpperCase())){
                     return 100.0;
                 }
             }           
@@ -671,6 +725,34 @@ public class LOP2PMetadata extends Document{
         elID.addContent(entry);
 
         this.getGeneral().addContent(elID);
+    }
+
+    /**
+     * @return the name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * @param name the name to set
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * @return the description
+     */
+    public String getDescription() {
+        return description;
+    }
+
+    /**
+     * @param description the description to set
+     */
+    public void setDescription(String description) {
+        this.description = description;
     }
    
 }

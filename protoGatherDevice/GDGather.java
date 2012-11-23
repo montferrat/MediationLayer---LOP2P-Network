@@ -18,6 +18,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import protoStandardAbstractData.LOP2PMetadata;
 import protoTranslatorDevice.*;
+import org.json.*;
 
 /**
  *
@@ -52,7 +53,7 @@ public class GDGather {
      * @param   message    message received from loware
      */      
     
-    public void receiveMetadataFromLoware(String message){
+    public void receiveMetadataFromLoware(JSONObject message){
         ArrayList metadatas = translator.translate(message);
         this.gdcfg.getGdData().getMyMetadatas().clear();
         for(int i=0; i<metadatas.size(); i++){

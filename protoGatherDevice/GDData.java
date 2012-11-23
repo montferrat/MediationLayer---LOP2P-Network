@@ -15,6 +15,7 @@ import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.json.JSONObject;
 import protoStandardAbstractData.LOP2PMetadata;
 import protonetcommunicationdevice.LOP2PMessage;
 
@@ -216,11 +217,11 @@ public class GDData {
      * 
      * @return              list of metadatas compatible with the parameter mtdt
      */             
-    public ArrayList searchInMyMetadatas(LOP2PMetadata mtdt, Double simForRecover){
+    public ArrayList searchInMyMetadatas(JSONObject msgJSON, Double simForRecover){
         ArrayList results = new ArrayList();
         for(int i=0; i<this.myMetadatas.size(); i++){
             LOP2PMetadata myMtdt = (LOP2PMetadata) this.myMetadatas.get(i);
-            Double similarity = myMtdt.compare(mtdt);
+            Double similarity = myMtdt.compare(msgJSON);
             if (similarity >= simForRecover){
                 results.add(myMtdt);
             }
@@ -238,11 +239,11 @@ public class GDData {
      * 
      * @return              list of metadatas compatible with the parameter mtdt
      */             
-    public ArrayList searchInOthersMetadatas(LOP2PMetadata mtdt, Double simForRecover){
+    public ArrayList searchInOthersMetadatas(JSONObject msgJSON, Double simForRecover){
         ArrayList results = new  ArrayList();
         for(int i=0; i<this.othersMetadatas.size(); i++){
             LOP2PMetadata otherMtdt = (LOP2PMetadata) this.othersMetadatas.get(i);
-            Double similarity = otherMtdt.compare(mtdt);
+            Double similarity = otherMtdt.compare(msgJSON);
             if (similarity >= simForRecover){
                 results.add(otherMtdt);
             }

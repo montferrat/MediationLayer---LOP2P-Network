@@ -12,6 +12,7 @@ import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 import protoGatherDevice.*;
 
 import protoSearchDevice.SDConfiguration;
@@ -21,6 +22,7 @@ import protoStatisticsDevice.StDStatistics;
 import protoSubmitDevice.SuDConfiguration;
 import protoSubmitDevice.SuDSubmit;
 import protonetcommunicationdevice.LOP2PMessage;
+import org.json.*;
 
 /**
  *
@@ -85,10 +87,10 @@ public class LIDRequestHandler extends Thread{
                         bruteMessage += tmp;
                     }
                     DataOutputStream toCliente = handler.getOut();//new DataOutputStream(this.socket.getOutputStream());
-
+                    JSONObject msgJSON = new JSONObject(bruteMessage);
                     //working with that message
-                    String messageType = bruteMessage.substring(0, 25);
-                    String message = bruteMessage.substring(25);        
+                    String messageType = msgJSON.getString("type");
+                    //String message = bruteMessage.substring(25);        
 
         /*            LIDThreadServices lidts = new LIDThreadServices(message, messageType, lidcfg, socket, toCliente, doCliente);
                     lidts.start();*/
@@ -97,20 +99,21 @@ public class LIDRequestHandler extends Thread{
                         case GATHER:
                             //calls handler for that function
                             GDGather gather = new GDGather(lidcfg.getNCDCfg().NT_INSTANCE_NAME, this.lidcfg.getGdCfg(), this.lidcfg.getTrdCfg());
-                            gather.receiveMetadataFromLoware(message);
+                            gather.receiveMetadataFromLoware(msgJSON);
                             String msgReturn = "LOP2P: Congratulations, metadata list stored with success!";
                             synchronized(toCliente){
                                 toCliente.write(msgReturn.getBytes());                            
                             }
                             break;        
+                            
 
                         case SEARCH:
                             //calls handler for that function
                             //System.out.println (message);
                             SDSearch search = new SDSearch(this, new SDConfiguration(this.lidcfg.getGdCfg(), lidcfg.getNCDCfg()), this.lidcfg.getTrdCfg());
-                            search.search(message);
+                            search.search(msgJSON);
                             break;
-
+                    }/*
                         case STORE:
                             
                             //calls handler for that function
@@ -161,7 +164,7 @@ public class LIDRequestHandler extends Thread{
                 } catch (IOException ex) {
                     Logger.getLogger(LIDRequestHandler.class.getName()).log(Level.SEVERE, null, ex);
                 } catch (ClassNotFoundException ex) {
-                    Logger.getLogger(LIDRequestHandler.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(LIDRequestHandler.class.getName()).log(Level.SEVERE, null, ex);*/
                 } catch (Exception ex) {
                     Logger.getLogger(LIDRequestHandler.class.getName()).log(Level.SEVERE, null, ex);
 

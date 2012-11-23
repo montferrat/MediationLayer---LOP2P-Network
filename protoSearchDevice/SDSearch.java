@@ -27,8 +27,8 @@ import net.jxta.endpoint.Message.ElementIterator;
 import net.jxta.endpoint.MessageElement;
 import net.jxta.endpoint.StringMessageElement;
 import org.bouncycastle.jce.exception.ExtIOException;
-//import org.json.JSONObject;
-import utils.JSONObject;
+import org.json.*;
+//import utils.JSONObject;
 import protoLowareInterfaceDevice.LIDRequestHandler;
 import protoStandardAbstractData.LOP2PMetadata;
 import protoTranslatorDevice.*;
@@ -69,62 +69,40 @@ public class SDSearch {
      * 
      * @param message request message of search containing metadata for search
      */      
-    public void search(String message) throws FileNotFoundException, IOException, ClassNotFoundException, Exception{
+    public void search(JSONObject msgJSON) throws FileNotFoundException, IOException, ClassNotFoundException, Exception{
 
         //send the responses for client
         DataOutputStream toCliente = null;
-        ArrayList metadatas = translator.translate(message);
-        LOP2PMetadata metadata = null;
-        if (metadatas.size() > 0) {
-            metadata = (LOP2PMetadata) metadatas.get(0);
-        } else {
-            //generate exception
-           throw new Exception("A metadata couldn't be created with the search arguments.");
-        }
+        
         ArrayList compatibilities = new ArrayList();
-        compatibilities.addAll(this.sdcfg.getGDData().searchInMyMetadatas(metadata, this.sdcfg.getSimForRecover()));
-        compatibilities.addAll(this.sdcfg.getGDData().searchInOthersMetadatas(metadata, this.sdcfg.getSimForRecover()));        
+        compatibilities.addAll(this.sdcfg.getGDData().searchInMyMetadatas(msgJSON, this.sdcfg.getSimForRecover()));
+        compatibilities.addAll(this.sdcfg.getGDData().searchInOthersMetadatas(msgJSON, this.sdcfg.getSimForRecover()));        
         
 
         //request search outside: others peers
         ArrayList msgPool = this.sdcfg.getNCDCfg().getNCDData().getMessageBufferList();
-        
         Integer nrequests = 0;
-        
         Date date = new Date();
         String msgID = "msgSent" + date.getTime();
         ArrayList otherPeers = sdcfg.getNCDCfg().getNCDData().getKnownPeersList();
         for (int i=0; i<otherPeers.size(); i++){
-            ObjectOutputStream objstream = null;
+            
             try {
                 String peerTarget = ((EndpointAddress) otherPeers.get(i)).getProtocolAddress();
                 String thisPeer = this.sdcfg.getNCDCfg().getNetworkManager().getPeerID().toURI().toString();
                 thisPeer = thisPeer.substring(thisPeer.indexOf("uuid"));
+                
                 LOP2PMessage msgToSend = new LOP2PMessage(thisPeer, peerTarget, this.sdcfg.getNCDCfg().getMessageNamespace());
                 msgToSend.addItem("IDMSG", msgID);
                 msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.SEARCH.toString());
-                String fileName = msgID;
-                String metadataPath = this.sdcfg.getNCDCfg().getMessagesTempPath() + '/' + fileName + ".ser";
-                objstream = new ObjectOutputStream(new FileOutputStream(metadataPath));
-                objstream.writeObject(metadata);
-                objstream.close();
-
-                //putting that in a message
-                File file = new File(metadataPath);
-                msgToSend.addAttachment(file);
+                msgToSend.addItem("JSON_SEARCH", msgJSON.toString());
                 nrequests++;
                 
                 msgPool.add(msgToSend);
-            } catch (IOException ex) {
+            } catch (Exception ex) {
                 otherPeers.remove(i);
                 i--;
                 System.err.println(ex.toString());
-            } finally {
-                try {
-                    objstream.close();
-                } catch (IOException ex) {
-                    Logger.getLogger(SDSearch.class.getName()).log(Level.SEVERE, null, ex);
-                }
             }
             
         }
@@ -137,7 +115,7 @@ public class SDSearch {
             //create message
             String msg = (String) translator.translateBack(mtdt, this.sdcfg.getNCDCfg().getNetworkManager().getPeerID().toURI().toString());
 
-            //send message to search requester
+            //send message to search requester (responses about this peer)
             synchronized(toCliente){
                 toCliente.write(msg.getBytes());
             }
@@ -153,29 +131,11 @@ public class SDSearch {
             LOP2PMessage msg = (LOP2PMessage)this.sdcfg.getNCDCfg().getNCDData().searchForResponseById(msgID);
             if (msg != null){
                 //getting metadatas
-                ElementIterator itMsg =  msg.getMessageElements();
-                
-                while(itMsg.hasNext()){
-                    MessageElement el = itMsg.next();
-                    if (el.getElementName().equals("fileRefence")){
-                        //recover the element
-                        StringMessageElement sme = 
-                                                        (StringMessageElement) el;                    
-                        String filePath = new String(sme.getBytes(true));
-                        
-                        ObjectInputStream objstream = new ObjectInputStream(new FileInputStream(filePath));
-                        LOP2PMetadata metadataFromFile = (LOP2PMetadata) objstream.readObject();
-
-                        sdcfg.getGDData().getMyMetadatas().add(metadataFromFile);
-
-                        objstream.close(); 
-                        
-                        //send message with metadata to search requester
-                        String translatedMessage = (String) translator.translateBack(metadataFromFile, msg.getItem("peerFrom"));
-                        synchronized(toCliente){
-                            toCliente.write(translatedMessage.getBytes());                        
-                        }
-                    }                    
+                JSONObject objetoJSON = new JSONObject(msg.getItem("OBJECTS"));
+                //passar isto para fora do laço de repetição, pois deve-se fazer o envio de uma só vez.
+                String translatedMessage = objetoJSON.toString();
+                synchronized(toCliente){
+                    toCliente.write(translatedMessage.getBytes());                        
                 }
                 
                 //decrising number of responses
@@ -210,37 +170,12 @@ public class SDSearch {
     public void searchExpose(LOP2PMessage msg) {
         //getting metadatas
         try{
-            ElementIterator itMsg =  msg.getMessageElements();
-            MessageElement el = null;
-            LOP2PMetadata metadataFromFile = null;
-            String filePath = "";
-            while(itMsg.hasNext()){
-                el = itMsg.next();
-                if (el.getElementName().equals("fileRefence")){
-
-                ObjectInputStream objistream = null;
-                try {
-                    StringMessageElement sme = (StringMessageElement) el;
-                    filePath = new String(sme.getBytes(true));
-                    objistream = new ObjectInputStream(new FileInputStream(filePath));
-                    metadataFromFile = (LOP2PMetadata) objistream.readObject();
-                    objistream.close();
-                    break;
-                } catch (IOException ex) {
-                    Logger.getLogger(NCDMessagesReceiverVerifier.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (ClassNotFoundException ex) {
-                    Logger.getLogger(NCDMessagesReceiverVerifier.class.getName()).log(Level.SEVERE, null, ex);
-
-                } finally {
-
-                }
-             }
-            }
-             if(metadataFromFile != null){
+            JSONObject objetoJSON = new JSONObject(msg.getItem("JSON_SEARCH"));
+            
+             if(objetoJSON  != null){
                 ArrayList compatibilities = new ArrayList();
-                compatibilities.addAll(this.sdcfg.getGDData().searchInMyMetadatas(metadataFromFile, this.sdcfg.getSimForRecover()));
-                compatibilities.addAll(this.sdcfg.getGDData().searchInOthersMetadatas(metadataFromFile, this.sdcfg.getSimForRecover()));
-
+                compatibilities.addAll(this.sdcfg.getGDData().searchInMyMetadatas(objetoJSON, this.sdcfg.getSimForRecover()));
+                compatibilities.addAll(this.sdcfg.getGDData().searchInOthersMetadatas(objetoJSON, this.sdcfg.getSimForRecover()));        
 
                 //request search outside: others peers
                 ArrayList msgPool = this.sdcfg.getNCDCfg().getNCDData().getMessageBufferList();
@@ -260,24 +195,12 @@ public class SDSearch {
                 for (int i=0; i<otherPeers.size(); i++){
                     String peerTarget = ((EndpointAddress) otherPeers.get(i)).getProtocolAddress();
                     if (msg.getItem("peerFrom").equals(peerTarget) != true){
-                        ObjectOutputStream objstream = null;
-    //                    try {
-
-
+                        
+    
                         LOP2PMessage msgToSend = new LOP2PMessage(msg.getItem("peerFrom"), peerTarget, this.sdcfg.getNCDCfg().getMessageNamespace());
                         msgToSend.addItem("IDMSG", msgID);
-                        msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.SEARCH.toString());
-                        String fileName = msgID + i;
-                        /*String metadataPath = this.sdcfg.getNCDCfg().getMessagesTempPath() + '/' + fileName + ".ser";
-                        objstream = new ObjectOutputStream(new FileOutputStream(metadataPath));
-                        objstream.writeObject(metadataFromFile);
-                        objstream.close();*/
-
-                        //putting that in a message
-                        File file = new File(filePath);
-                        msgToSend.addAttachment(file);
-                        nrequests++;
-
+                        msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.SEARCH.toString());  
+                        msgToSend.addItem("JSON_SEARCH", objetoJSON.toString());
                         msgPool.add(msgToSend);
 
                     }
@@ -291,89 +214,25 @@ public class SDSearch {
                         try {
                             LOP2PMetadata mtdt = (LOP2PMetadata) compatibilities.get(i);
                             //create message
+                            String ms = (String) translator.translateBack(mtdt, this.sdcfg.getNCDCfg().getNetworkManager().getPeerID().toURI().toString());
+                            //create message
                             LOP2PMessage msgToSend = new LOP2PMessage(msg.getItem("peerDestination"), msg.getItem("peerFrom"), this.sdcfg.getNCDCfg().getMessageNamespace());
                             msgToSend.addItem("IDMSG", msgID);
                             msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.SEARCH_EXPOSE.toString());
-                            String fileName = msgID + i + "EXPOSE";
-
-                            String metadataPath = this.sdcfg.getNCDCfg().getMessagesTempPath() + '/' + fileName + ".ser";
-                            objstream = new ObjectOutputStream(new FileOutputStream(metadataPath));
-                            objstream.writeObject(mtdt);
-                            objstream.close();
-
-                            //putting that in a message
-                            File file = new File(metadataPath);
-                            msgToSend.addAttachment(file);
-                            nrequests++;
-
+                            msgToSend.addItem("OBJECTS", ms);
+                            msgToSend.addItem("JSON_SEARCH", objetoJSON.toString());
+                            
                             //send message to search requester
                             msgPool.add(msgToSend);
                             System.err.println("Exposing requested search!");
-                        } catch (IOException ex) {
+                        } catch (Exception ex) {
                             Logger.getLogger(SDSearch.class.getName()).log(Level.SEVERE, null, ex);
 
                         }
 
                 }
 
-    /*
-                //send the responses for client: use time as parade criteria
-                Calendar targetCal = new GregorianCalendar();
-                targetCal.add(Calendar.SECOND, this.getSDCfg().getExpirationTime());
-                Date target = targetCal.getTime();
-                Date now = new Date();
-                while ((target.getTime() > now.getTime())){
-                    LOP2PMessage msg2 = (LOP2PMessage)this.sdcfg.getNCDCfg().getNCDData().searchForResponseById(msgID);
-                    if (msg != null){
-                        //getting metadatas
-                        ElementIterator itMsg2 =  msg2.getMessageElements();
-
-                        while(itMsg.hasNext()){
-                            MessageElement el2 = itMsg2.next();
-                            if (el2.getElementName().equals("fileRefence")){
-                                //recover the element
-                                ByteArrayMessageElement myByteArrayMessageElement2 = 
-                                                                (ByteArrayMessageElement) el2;                    
-                                String filePath2 = new String(myByteArrayMessageElement2.getBytes());
-
-                                ObjectInputStream objstream2 = new ObjectInputStream(new FileInputStream(filePath2));
-                                LOP2PMetadata metadataFromFile2 = (LOP2PMetadata) objstream2.readObject();
-                                objstream.close(); 
-
-                                //send message with metadata to search requester
-                                LOP2PMessage msgToSend = new LOP2PMessage(  
-                                                            msg.getItem("peerDestination"),
-                                                            msg.getItem("peerFrom"),
-                                                            this.sdcfg.getNCDCfg().getMessageNamespace()
-                                                            );
-                                msgToSend.addItem("IDMSG", msgID);
-                                msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.SEARCH_EXPOSE.toString());                    
-                                String fileName = msgID + "asdfEXPOSE"+itMsg2.getNamespace();                    
-                                String metadataPath = this.sdcfg.getNCDCfg().getMessagesTempPath() + '/' + fileName + ".ser";
-                                objstream = new ObjectOutputStream(new FileOutputStream(metadataPath));
-                                objstream.writeObject(metadataFromFile2);
-                                objstream.close();
-
-                                //putting that in a message
-                                File file = new File(metadataPath);
-                                msgToSend.addAttachment(file);
-                                nrequests++;
-
-                                //send message to search requester
-                                msgPool.add(msgToSend);  
-
-
-                            }                    
-                        }
-
-                        //decrising number of responses
-                        //nrequests--; 
-                    }            
-                    now = new Date();
-                }                         */     
-
-
-
+            
              }
       
         }catch(Exception ex){
@@ -384,37 +243,12 @@ public class SDSearch {
     public void searchExposeTorrent(LOP2PMessage msg) {
         //getting metadatas
         try{
-            ElementIterator itMsg =  msg.getMessageElements();
-            MessageElement el = null;
-            LOP2PMetadata metadataFromFile = null;
-            String filePath = "";
-            while(itMsg.hasNext()){
-                el = itMsg.next();
-                if (el.getElementName().equals("fileRefence")){
+            JSONObject objetoJSON = new JSONObject(msg.getItem("JSON_SEARCH"));
 
-                ObjectInputStream objistream = null;
-                try {
-                    StringMessageElement sme = (StringMessageElement) el;
-                    filePath = new String(sme.getBytes(true));
-                    objistream = new ObjectInputStream(new FileInputStream(filePath));
-                    metadataFromFile = (LOP2PMetadata) objistream.readObject();
-                    objistream.close();
-                    break;
-                } catch (IOException ex) {
-                    Logger.getLogger(NCDMessagesReceiverVerifier.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (ClassNotFoundException ex) {
-                    Logger.getLogger(NCDMessagesReceiverVerifier.class.getName()).log(Level.SEVERE, null, ex);
-
-                } finally {
-
-                }
-             }
-            }
-             if(metadataFromFile != null){
+             if(objetoJSON  != null){
                 ArrayList compatibilities = new ArrayList();
-                compatibilities.addAll(this.sdcfg.getGDData().searchInMyMetadatas(metadataFromFile, this.sdcfg.getSimForRecover()));
-                compatibilities.addAll(this.sdcfg.getGDData().searchInOthersMetadatas(metadataFromFile, this.sdcfg.getSimForRecover()));
-
+                compatibilities.addAll(this.sdcfg.getGDData().searchInMyMetadatas(objetoJSON, this.sdcfg.getSimForRecover()));
+                compatibilities.addAll(this.sdcfg.getGDData().searchInOthersMetadatas(objetoJSON, this.sdcfg.getSimForRecover()));
 
                 //request search outside: others peers
                 ArrayList msgPool = this.sdcfg.getNCDCfg().getNCDData().getMessageBufferList();
@@ -435,21 +269,11 @@ public class SDSearch {
                     String peerTarget = ((EndpointAddress) otherPeers.get(i)).getProtocolAddress();
                     if (msg.getItem("peerFrom").equals(peerTarget) != true){
                         ObjectOutputStream objstream = null;
-    //                    try {
-
 
                         LOP2PMessage msgToSend = new LOP2PMessage(msg.getItem("peerFrom"), peerTarget, this.sdcfg.getNCDCfg().getMessageNamespace());
                         msgToSend.addItem("IDMSG", msgID);
                         msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.TORRENT_REQUEST.toString());
-                        String fileName = msgID + i;
-                        /*String metadataPath = this.sdcfg.getNCDCfg().getMessagesTempPath() + '/' + fileName + ".ser";
-                        objstream = new ObjectOutputStream(new FileOutputStream(metadataPath));
-                        objstream.writeObject(metadataFromFile);
-                        objstream.close();*/
-
-                        //putting that in a message
-                        File file = new File(filePath);
-                        msgToSend.addAttachment(file);
+                        msgToSend.addItem("JSON_SEARCH", objetoJSON.toString());
                         nrequests++;
 
                         msgPool.add(msgToSend);
@@ -465,10 +289,12 @@ public class SDSearch {
                         try {
                             LOP2PMetadata mtdt = (LOP2PMetadata) compatibilities.get(i);
                             //create message
+                            String ms = (String) translator.translateBack(mtdt, this.sdcfg.getNCDCfg().getNetworkManager().getPeerID().toURI().toString());
                             LOP2PMessage msgToSend = new LOP2PMessage(msg.getItem("peerDestination"), msg.getItem("peerFrom"), this.sdcfg.getNCDCfg().getMessageNamespace());
                             msgToSend.addItem("IDMSG", msgID);
                             msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.TORRENT_SUBMIT.toString());
-                            String fileName = msgID + i + "EXPOSE";
+                            msgToSend.addItem("OBJECTS", ms);
+                            msgToSend.addItem("JSON_SEARCH", objetoJSON.toString());
 
                             //Verify which blocks do we have so we can share with the requester
                             boolean[] totalBlocksDownloaded = mtdt.getBlocks();
@@ -479,83 +305,20 @@ public class SDSearch {
                                 else
                                     totalBlocksDownloaded[y] = false;
                             }
-                            mtdt.setBlocks(totalBlocksDownloaded);
+                            //mtdt.setBlocks(totalBlocksDownloaded);
+                            msgToSend.addItem("BLOCKS", totalBlocksDownloaded.toString());
 
-                            String metadataPath = this.sdcfg.getNCDCfg().getMessagesTempPath() + '/' + fileName + ".ser";
-                            objstream = new ObjectOutputStream(new FileOutputStream(metadataPath));
-                            objstream.writeObject(mtdt);
-                            objstream.close();
-
-                            //putting that in a message
-                            File file = new File(metadataPath);
-                            msgToSend.addAttachment(file);
                             nrequests++;
 
                             //send message to search requester
                             msgPool.add(msgToSend);
                             System.err.println("Exposing requested search!");
-                        } catch (IOException ex) {
+                        } catch (Exception ex) {
                             Logger.getLogger(SDSearch.class.getName()).log(Level.SEVERE, null, ex);
 
                         }
 
                 }
-
-    /*
-                //send the responses for client: use time as parade criteria
-                Calendar targetCal = new GregorianCalendar();
-                targetCal.add(Calendar.SECOND, this.getSDCfg().getExpirationTime());
-                Date target = targetCal.getTime();
-                Date now = new Date();
-                while ((target.getTime() > now.getTime())){
-                    LOP2PMessage msg2 = (LOP2PMessage)this.sdcfg.getNCDCfg().getNCDData().searchForResponseById(msgID);
-                    if (msg != null){
-                        //getting metadatas
-                        ElementIterator itMsg2 =  msg2.getMessageElements();
-
-                        while(itMsg.hasNext()){
-                            MessageElement el2 = itMsg2.next();
-                            if (el2.getElementName().equals("fileRefence")){
-                                //recover the element
-                                ByteArrayMessageElement myByteArrayMessageElement2 =
-                                                                (ByteArrayMessageElement) el2;
-                                String filePath2 = new String(myByteArrayMessageElement2.getBytes());
-
-                                ObjectInputStream objstream2 = new ObjectInputStream(new FileInputStream(filePath2));
-                                LOP2PMetadata metadataFromFile2 = (LOP2PMetadata) objstream2.readObject();
-                                objstream.close();
-
-                                //send message with metadata to search requester
-                                LOP2PMessage msgToSend = new LOP2PMessage(
-                                                            msg.getItem("peerDestination"),
-                                                            msg.getItem("peerFrom"),
-                                                            this.sdcfg.getNCDCfg().getMessageNamespace()
-                                                            );
-                                msgToSend.addItem("IDMSG", msgID);
-                                msgToSend.addItem("TYPE", LOP2PMessage.MESSAGE_TYPE.SEARCH_EXPOSE.toString());
-                                String fileName = msgID + "asdfEXPOSE"+itMsg2.getNamespace();
-                                String metadataPath = this.sdcfg.getNCDCfg().getMessagesTempPath() + '/' + fileName + ".ser";
-                                objstream = new ObjectOutputStream(new FileOutputStream(metadataPath));
-                                objstream.writeObject(metadataFromFile2);
-                                objstream.close();
-
-                                //putting that in a message
-                                File file = new File(metadataPath);
-                                msgToSend.addAttachment(file);
-                                nrequests++;
-
-                                //send message to search requester
-                                msgPool.add(msgToSend);
-
-
-                            }
-                        }
-
-                        //decrising number of responses
-                        //nrequests--;
-                    }
-                    now = new Date();
-                }                         */
 
 
 
